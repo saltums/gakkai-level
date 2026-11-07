@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ボイス確認 ― 学会発表レベル</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;height:100dvh;display:flex;flex-direction:column;font-family:system-ui,'Hiragino Sans','Yu Gothic UI',sans-serif;background:#120607;color:#fff}
+header{padding:10px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #3b1216}
+h1{font-size:16px;margin:0}
+#now{font-size:12px;color:#fca5a5;flex:1;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;min-height:0}
+section{display:flex;flex-direction:column;min-height:0;background:#1d0b0d;border:1px solid #3b1216;border-radius:12px;padding:8px}
+h2{font-size:13px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}
+h2 small{font-weight:400;color:#94a3b8}
+.grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));grid-auto-rows:1fr;gap:6px;min-height:0}
+button.clip{background:#2a1013;border:1px solid #4c1d22;color:#fff;border-radius:8px;padding:4px 8px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;min-height:0;overflow:hidden}
+button.clip:hover{background:#3a151a}
+button.clip.playing{background:#b91c1c;border-color:#fca5a5}
+.t{font-size:13px;font-weight:700;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.k{font-size:10px;color:#94a3b8;margin-top:2px}
+.miki{background:#facc15!important;color:#111!important;border-color:#fde047!important}
+.miki .k{color:#444}
+@media (max-width:640px){main{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,1fr)}.t{font-size:12px}}
+</style>
+</head>
+<body>
+<header><h1>ボイス確認</h1><div id="now">タップで再生</div></header>
+<main>
+  <section><h2>医師役 <small>Hiro</small></h2><div class="grid" id="doc"></div></section>
+  <section><h2>芸人役 <small>Gary</small></h2><div class="grid" id="shoji"></div></section>
+</main>
+<script>
+const DOC=[['doc_start','それでは、胃カメラ入れていきますね','開始'],['doc_qte','慎重にね…','つまんだ時'],['doc_fast','活きがいいなあ、こいつ','速い個体'],['doc_cluster','うわ、2匹絡まってる！','絡み合い'],['doc_deep_hint','ひだの裏に何かいるな。ライトを当ててみて','潜伏ヒント'],['doc_found','いた！','潜伏発見'],['doc_got1','取れた！','摘出'],['doc_got2','よしっ！','摘出'],['doc_got3','摘出！','摘出'],['doc_perfect','完璧！','PERFECT'],['doc_combo','いいリズムだ！','コンボ'],['doc_last','あと1匹！','ラスト'],['doc_after_mikity','大丈夫？今、奥さんの名前叫んでたけど','ミキ(ピー)後'],['doc_resume','おかえりなさい。残り4匹、いきますよ','後半開始'],['doc_rank_s','すごいよ、コレ！！学会で発表できるレベルだよ！','RANK S'],['doc_rank_a','見事な摘出術だ！営業に間に合ってよかったね！','RANK A'],['doc_rank_b','痛みが治まらなかったのは、4匹残っていたからだよ！','RANK B/C']];
+const SHOJI=[['shoji_start','お願いします…','開始'],['shoji_bite1','うっ、噛んでる…','噛みつき'],['shoji_bite2','今、噛んだ！絶対噛んだ！','噛みつき'],['shoji_ouch1','いってぇ！','失敗'],['shoji_ouch2','ブチって言った！','失敗'],['shoji_ouch3','痛い痛い！','失敗'],['shoji_limit','もう、限界です…','激痛70%'],['shoji_relief','あぁ〜、楽になった…','摘出'],['shoji_eigyo','4匹残ってますけど、営業行ってきます！','営業へ'],['shoji_back','ただいま戻りました！ちゃんとウケました！','後半開始'],['shoji_clear','学会デビューだ！','RANK S'],['MIKI','ミキ(ピー)ーーーッ！！','ゲーム内の再生'],['shoji_miki_a','ミキッ','素材A'],['shoji_miki_b','ティーーーーッ！！','素材B(規制前)']];
+let ctx, cur=null, curBtn=null; const cache={};
+async function buf(k){ if(!cache[k]){ const ab=await (await fetch(`../voice/${k}.mp3`)).arrayBuffer(); cache[k]=await ctx.decodeAudioData(ab);} return cache[k]; }
+function stop(){ if(cur){ try{cur.forEach(s=>s.stop());}catch(e){} cur=null; } if(curBtn) curBtn.classList.remove('playing'); }
+function src(b,when=0,gainNode){ const s=ctx.createBufferSource(); s.buffer=b; s.connect(gainNode||ctx.destination); s.start(ctx.currentTime+when); return s; }
+async function play(k,text,btn){
+  if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)();
+  if(ctx.state==='suspended') await ctx.resume();
+  stop(); curBtn=btn; btn.classList.add('playing'); document.getElementById('now').textContent='▶ '+text;
+  if(k==='MIKI'){
+    const a=await buf('shoji_miki_a'), b=await buf('shoji_miki_b'), CUT=0.42, t=a.duration;
+    const g=ctx.createGain(); g.connect(ctx.destination); const T=ctx.currentTime;
+    g.gain.setValueAtTime(0,T); g.gain.setValueAtTime(0,T+t+CUT-0.03); g.gain.linearRampToValueAtTime(1,T+t+CUT);
+    const s1=src(a), s2=src(b,t,g);
+    const o=ctx.createOscillator(), og=ctx.createGain(); o.frequency.value=1000; og.gain.setValueAtTime(0,T+t); og.gain.linearRampToValueAtTime(0.35,T+t+0.01); og.gain.setValueAtTime(0.35,T+t+CUT-0.02); og.gain.linearRampToValueAtTime(0,T+t+CUT);
+    o.connect(og); og.connect(ctx.destination); o.start(T+t); o.stop(T+t+CUT+0.05);
+    cur=[s1,s2,o]; s2.onended=()=>{ if(curBtn===btn) btn.classList.remove('playing'); };
+  } else {
+    const s=src(await buf(k)); cur=[s]; s.onended=()=>{ if(curBtn===btn) btn.classList.remove('playing'); };
+  }
+}
+function render(id,list){
+  const el=document.getElementById(id);
+  list.forEach(([k,text,when])=>{
+    const b=document.createElement('button'); b.className='clip'+(k==='MIKI'?' miki':'');
+    b.innerHTML=`<span class="t"></span><span class="k"></span>`;
+    b.querySelector('.t').textContent=text; b.querySelector('.k').textContent=when;
+    b.addEventListener('click',()=>play(k,text,b)); el.appendChild(b);
+  });
+}
+render('doc',DOC); render('shoji',SHOJI);
+</script>
+</body>
+</html>
