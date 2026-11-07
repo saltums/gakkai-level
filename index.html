@@ -246,7 +246,7 @@ const VOICE_KEYS=['doc_start','doc_found','doc_got1','doc_got2','doc_got3','doc_
   'doc_qte','doc_fast','doc_cluster','doc_deep_hint','doc_last','doc_perfect','doc_combo','doc_after_mikity',
   'shoji_ouch1','shoji_ouch2','shoji_ouch3','shoji_eigyo','shoji_miki_a','shoji_miki_b',
   'shoji_start','shoji_bite1','shoji_bite2','shoji_limit','shoji_relief','shoji_back','shoji_clear'];
-const BGM_FILES=['stage','stage2','break','clear'];
+const BGM_FILES=['stage','stage2','break','clear','poster'];
 const Assets={ raw:{}, buf:{},
   prefetch(){
     const get=(k,p)=>fetch(p).then(r=>r.ok?r.arrayBuffer():null).then(ab=>{if(ab)this.raw[k]=ab;}).catch(()=>{});
@@ -286,7 +286,7 @@ const music={ timer:null,song:null,step:0,next:0,src:null,
     if(!audio.ctx)return; this.stop();
     let b=Assets.buf['b_'+name], rate=1;
     if(name==='stage2'&&!b&&Assets.buf.b_stage){ b=Assets.buf.b_stage; rate=1.12; }
-    if(b){ const s=audio.ctx.createBufferSource(); s.buffer=b; s.loop=name!=='clear'; s.playbackRate.value=rate; s.connect(audio.bgmBus); s.start(); this.src=s; return; }
+    if(b){ const s=audio.ctx.createBufferSource(); s.buffer=b; s.loop=!['clear','poster'].includes(name); s.playbackRate.value=rate; s.connect(audio.bgmBus); s.start(); this.src=s; return; }
     if(!SONGS[name])return;
     this.song=SONGS[name]; this.step=0; this.next=audio.ctx.currentTime+0.06;
     this.timer=setInterval(()=>this.tick(),25);
@@ -560,7 +560,8 @@ function finish(){
   T(1500,()=>{ cs.classList.add('open'); audio.crash(); });
   T(2150,()=>{
     $('rank-stamp').className='stamp slam '+r.stamp; audio.impact();
-    if(Assets.buf.b_clear&&'SA'.includes(rank)) music.play('clear'); else if('SAB'.includes(rank)) audio.win();
+    if('SA'.includes(rank)){ if(Assets.buf.b_clear) music.play('clear'); else audio.win(); }
+    else if(rank==='B'){ if(Assets.buf.b_poster) music.play('poster'); else audio.win(); }
     if(r.clap) audio.applause(...r.clap); else audio.cricket(4);
     if('SA'.includes(rank)) $('rays').classList.add('on');
     if(r.ovation){ seg($('ovation'),r.ovation); $('ovation').className='ovation on'; }
